@@ -1,70 +1,58 @@
 # rtlutil
 
-Keyboard-first TUI for enumerating, testing, and configuring RTL-SDR USB dongles.
+A keyboard-first terminal UI for RTL-SDR USB dongles. It lists every Realtek RTL2832U device on the bus, lets you pick one, and runs the usual Osmocom `rtl_*` tools against it with live output.
 
-It lists every Realtek RTL2832U device on the bus, lets you pick one, and runs the Osmocom `rtl_*` tools against it with live output. Devices are always addressed **by serial number**, not USB index — on a hub the index order is not the serial order.
+Devices are addressed **by serial number**, not USB index. On a hub those two orders are often different.
 
 ## Requirements
 
-- Linux
-- Rust 1.85+ (edition 2024)
-- `rtl-sdr` tools on `PATH` (`rtl_test`, `rtl_eeprom`, `rtl_biast`, `rtl_power`, `rtl_sdr`, `rtl_fm`, `rtl_tcp`, `rtl_adsb`)
+- Linux (x86_64)
+- The [rtl-sdr](https://osmocom.org/projects/rtl-sdr/wiki) tools on your `PATH`: `rtl_test`, `rtl_eeprom`, `rtl_biast`, `rtl_power`, `rtl_sdr`, `rtl_fm`, `rtl_tcp`, `rtl_adsb`
 - Permission to open the USB devices (the same access `rtl_test` needs)
 
-## Install from a release
-
-GitHub Actions builds a Linux x86_64 binary on every `v*` tag and attaches it to the [Releases](https://github.com/innerpulsenet/rtlutil/releases) page.
+Debian / Ubuntu:
 
 ```bash
-# after downloading rtlutil-v0.1.0-x86_64-unknown-linux-gnu
-chmod +x rtlutil-v0.1.0-x86_64-unknown-linux-gnu
-sudo mv rtlutil-v0.1.0-x86_64-unknown-linux-gnu /usr/local/bin/rtlutil
-sudo apt install rtl-sdr   # Debian / Ubuntu
+sudo apt install rtl-sdr
+```
+
+## Install
+
+Download the Linux binary from the [latest release](https://github.com/innerpulsenet/rtlutil/releases/latest), then:
+
+```bash
+chmod +x rtlutil-*-x86_64-unknown-linux-gnu
+sudo mv rtlutil-*-x86_64-unknown-linux-gnu /usr/local/bin/rtlutil
 rtlutil
 ```
 
-You still need the `rtl-sdr` tools and USB permission; the binary is only the TUI.
+`rtlutil` is only the TUI. The `rtl-sdr` package above still has to be installed.
 
-## Build from source
-
-```bash
-cargo build --release
-./target/release/rtlutil
-./target/release/rtlutil --list
-```
-
-People with a Rust toolchain can also:
+Or, if you have a Rust toolchain:
 
 ```bash
 cargo install --git https://github.com/innerpulsenet/rtlutil --locked
 ```
 
-## Cutting a release
-
-1. Bump `version` in `Cargo.toml` (and commit).
-2. Tag and push:
+## Usage
 
 ```bash
-git tag -a v0.1.0 -m "rtlutil 0.1.0"
-git push origin v0.1.0
+rtlutil          # start the TUI
+rtlutil --list   # print connected dongles and exit
 ```
-
-That tag starts [`.github/workflows/release.yml`](.github/workflows/release.yml): it runs tests, builds `--release`, strips the binary, and publishes a GitHub Release with `rtlutil-<tag>-x86_64-unknown-linux-gnu` plus `SHA256SUMS`.
-
-## Keys
 
 | Key | Action |
 |---|---|
 | `tab` / `shift-tab` | Cycle Devices → Actions → Params → Log |
 | `↑` `↓` `j` `k` | Move in the focused pane |
-| `enter` | Run the highlighted action (or edit a parameter) |
-| `→` | Open the parameter form (lands on **Run**) |
+| `enter` | Run the highlighted action, or edit a parameter |
+| `→` | Open the parameter form (cursor lands on **Run**) |
 | `s` / `esc` | Stop the selected device's job |
 | `r` | Rescan USB |
 | `?` | Help |
 | `q` | Quit (asks first if jobs are running) |
 
-Choice fields cycle on `enter`. Text/int fields edit in place; `enter` commits, `esc` cancels.
+Choice fields cycle on `enter`. Text and number fields edit in place: `enter` commits, `esc` cancels.
 
 Jobs on different dongles can run at the same time. A device that already has a job must be stopped before starting another.
 
@@ -84,26 +72,24 @@ Jobs on different dongles can run at the same time. A device that already has a 
 | TCP server | `rtl_tcp` | I/Q server until stopped |
 | ADS-B | `rtl_adsb` | Decoded frames in the log |
 
-The device list is sorted by serial (`00000001`, `00000002`, …). The `idx` shown in the detail pane is the librtlsdr / `rtl_test` index, which on a hub is often **not** the same order as the serials (on this host, SN `00000003` is index 0).
-
-`rtl_eeprom` and `rtl_biast` only accept a device **index**. rtlutil rescans USB and maps the selected serial to the current index immediately before spawning those tools. Everything else gets `-d <serial>`.
+The device list is sorted by serial. The `idx` in the detail pane is the librtlsdr / `rtl_test` index, which may not match serial order. `rtl_eeprom` and `rtl_biast` only accept an index; rtlutil maps the selected serial to the current index before launching those tools. Everything else is started with `-d <serial>`.
 
 ## EEPROM writes
 
 Programming the EEPROM can make a dongle unusable if the image is wrong.
 
-1. Fill in manufacturer / product / serial (or pick a preset).
+1. Fill in manufacturer / product / serial, or pick a preset.
 2. Press Run. A modal shows the new values and the backup path.
 3. Type `WRITE` and press enter.
-4. rtlutil dumps `~/.local/share/rtlutil/eeprom-backup-<serial>-<unix>.bin` first, then programs. If the dump fails, the write does not run.
+4. rtlutil writes a backup to `~/.local/share/rtlutil/eeprom-backup-<serial>-<unix>.bin` first, then programs the dongle. If the dump fails, the write does not run.
 
-Automated tests never write the EEPROM.
-
-## Tests
+## Build from source
 
 ```bash
-cargo test
-RTLUTIL_HW=1 cargo test --test hardware -- --nocapture
+git clone https://github.com/innerpulsenet/rtlutil.git
+cd rtlutil
+cargo build --release
+./target/release/rtlutil
 ```
 
-Hardware tests expect three dongles with serials `00000001`, `00000002`, and `00000003`.
+You need Rust 1.85 or newer (edition 2024).
