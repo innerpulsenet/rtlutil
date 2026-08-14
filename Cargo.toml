@@ -1,0 +1,13 @@
+[package]
+name = "rtlutil"
+version = "0.1.0"
+edition = "2024"
+description = "TUI for enumerating, configuring, and testing RTL-SDR USB devices"
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
+crossterm = "0.29"
+libc = "0.2"
+nusb = "0.2"
+ratatui = "0.30"
