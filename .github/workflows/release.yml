@@ -1,0 +1,54 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Test
+        run: cargo test --locked
+
+      - name: Build
+        run: cargo build --release --locked
+
+      - name: Package
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          name="rtlutil-${tag}-x86_64-unknown-linux-gnu"
+          strip target/release/rtlutil
+          mkdir -p dist
+          cp target/release/rtlutil "dist/${name}"
+          (cd dist && sha256sum "${name}" > SHA256SUMS)
+          ls -l dist
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/rtlutil-*-x86_64-unknown-linux-gnu
+            dist/SHA256SUMS
+          generate_release_notes: true
+          body: |
+            Linux x86_64 binary. The TUI still needs the `rtl-sdr` package
+            (`rtl_test`, `rtl_eeprom`, and the other `rtl_*` tools) on `PATH`.
+
+            ```bash
+            chmod +x rtlutil-${{ github.ref_name }}-x86_64-unknown-linux-gnu
+            sudo mv rtlutil-${{ github.ref_name }}-x86_64-unknown-linux-gnu /usr/local/bin/rtlutil
+            sudo apt install rtl-sdr   # Debian / Ubuntu
+            rtlutil
+            ```

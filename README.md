@@ -11,13 +11,45 @@ It lists every Realtek RTL2832U device on the bus, lets you pick one, and runs t
 - `rtl-sdr` tools on `PATH` (`rtl_test`, `rtl_eeprom`, `rtl_biast`, `rtl_power`, `rtl_sdr`, `rtl_fm`, `rtl_tcp`, `rtl_adsb`)
 - Permission to open the USB devices (the same access `rtl_test` needs)
 
-## Build and run
+## Install from a release
+
+GitHub Actions builds a Linux x86_64 binary on every `v*` tag and attaches it to the [Releases](https://github.com/innerpulsenet/rtlutil/releases) page.
+
+```bash
+# after downloading rtlutil-v0.1.0-x86_64-unknown-linux-gnu
+chmod +x rtlutil-v0.1.0-x86_64-unknown-linux-gnu
+sudo mv rtlutil-v0.1.0-x86_64-unknown-linux-gnu /usr/local/bin/rtlutil
+sudo apt install rtl-sdr   # Debian / Ubuntu
+rtlutil
+```
+
+You still need the `rtl-sdr` tools and USB permission; the binary is only the TUI.
+
+## Build from source
 
 ```bash
 cargo build --release
 ./target/release/rtlutil
 ./target/release/rtlutil --list
 ```
+
+People with a Rust toolchain can also:
+
+```bash
+cargo install --git https://github.com/innerpulsenet/rtlutil --locked
+```
+
+## Cutting a release
+
+1. Bump `version` in `Cargo.toml` (and commit).
+2. Tag and push:
+
+```bash
+git tag -a v0.1.0 -m "rtlutil 0.1.0"
+git push origin v0.1.0
+```
+
+That tag starts [`.github/workflows/release.yml`](.github/workflows/release.yml): it runs tests, builds `--release`, strips the binary, and publishes a GitHub Release with `rtlutil-<tag>-x86_64-unknown-linux-gnu` plus `SHA256SUMS`.
 
 ## Keys
 
